@@ -1,0 +1,29 @@
+pragma cashscript ^0.10.0;
+
+// Escrow contract with buyer/seller/mediator and timeout
+// 2-of-3 multisig: any two parties can release funds
+// Automatic refund to buyer after timeout period
+contract Escrow(
+    pubkey buyer,
+    pubkey seller,
+    pubkey mediator,
+    int price,
+    int timeout
+) {
+    // Release funds to seller (buyer + seller agree, or mediator intervenes)
+    function release(sig sig1, sig sig2) {
+        require(checkMultiSig([sig1, sig2], [buyer, seller, mediator]));
+        require(tx.outputs[0].value >= price);
+        require(tx.outputs[0].lockingBytecode ==
+            new LockingBytecodeP2PKH(hash160(seller)));
+    }
+
+    // Refund to buyer after timeout
+    function refund(sig buyerSig) {
+        require(checkSig(buyerSig, buyer));
+        require(tx.time >= timeout);
+        require(tx.outputs[0].value >= price);
+        require(tx.outputs[0].lockingBytecode ==
+            new LockingBytecodeP2PKH(hash160(buyer)));
+    }
+}

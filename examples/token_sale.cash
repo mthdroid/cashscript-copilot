@@ -1,0 +1,37 @@
+pragma cashscript ^0.10.0;
+
+// Fixed-price CashToken sale contract
+// Buyers send BCH and receive fungible tokens at a set rate
+// Owner can withdraw unsold tokens
+contract TokenSale(
+    pubkey owner,
+    bytes32 tokenId,
+    int pricePerToken
+) {
+    // Buy tokens by sending BCH
+    function buy(int tokenAmount) {
+        int totalPrice = tokenAmount * pricePerToken;
+
+        // Verify payment to owner
+        require(tx.outputs[0].value >= totalPrice);
+        require(tx.outputs[0].lockingBytecode ==
+            new LockingBytecodeP2PKH(hash160(owner)));
+
+        // Verify token transfer to buyer
+        require(tx.outputs[1].tokenCategory == tokenId);
+        require(tx.outputs[1].tokenAmount >= tokenAmount);
+
+        // Keep remaining tokens in contract
+        int remaining = tx.inputs[0].tokenAmount - tokenAmount;
+        if (remaining > 0) {
+            require(tx.outputs[2].lockingBytecode == this.activeBytecode);
+            require(tx.outputs[2].tokenCategory == tokenId);
+            require(tx.outputs[2].tokenAmount >= remaining);
+        }
+    }
+
+    // Owner can withdraw unsold tokens
+    function withdraw(sig ownerSig) {
+        require(checkSig(ownerSig, owner));
+    }
+}

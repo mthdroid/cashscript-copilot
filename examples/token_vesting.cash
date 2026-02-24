@@ -1,0 +1,45 @@
+pragma cashscript ^0.10.0;
+
+// Linear token vesting with cliff period
+// Tokens unlock gradually over time after an initial cliff
+contract TokenVesting(
+    pubkey beneficiary,
+    bytes32 tokenId,
+    int totalAmount,
+    int cliffTime,
+    int vestingDuration,
+    int startTime
+) {
+    // Claim vested tokens
+    function claim(sig beneficiarySig, int claimAmount) {
+        require(checkSig(beneficiarySig, beneficiary));
+        require(tx.time >= cliffTime);
+
+        // Calculate vested amount based on elapsed time
+        int elapsed = tx.time - startTime;
+        int vestedAmount = totalAmount;
+        if (elapsed < vestingDuration) {
+            vestedAmount = (totalAmount * elapsed) / vestingDuration;
+        }
+
+        // Compute how much is claimable (vested minus already claimed)
+        int remaining = tx.inputs[0].tokenAmount;
+        int alreadyClaimed = totalAmount - remaining;
+        int claimable = vestedAmount - alreadyClaimed;
+
+        require(claimAmount <= claimable);
+        require(claimAmount > 0);
+
+        // Transfer claimed tokens to beneficiary
+        require(tx.outputs[0].tokenCategory == tokenId);
+        require(tx.outputs[0].tokenAmount >= claimAmount);
+
+        // Keep remainder locked in contract
+        int newRemaining = remaining - claimAmount;
+        if (newRemaining > 0) {
+            require(tx.outputs[1].lockingBytecode == this.activeBytecode);
+            require(tx.outputs[1].tokenCategory == tokenId);
+            require(tx.outputs[1].tokenAmount >= newRemaining);
+        }
+    }
+}

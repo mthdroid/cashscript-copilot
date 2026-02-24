@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashScript Copilot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * { font-family: 'JetBrains Mono', monospace; }
+        body { background: #0a0e17; color: #e2e8f0; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0e17; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        /* Mode tabs */
+        .mode-tab { padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.15s; color: #94a3b8; font-size: 0.8125rem; }
+        .mode-tab:hover { background: #1e293b; color: #e2e8f0; }
+        .mode-tab.active { background: #0f6e2c; color: #4ade80; }
+
+        /* Cards */
+        .card { background: #111827; border: 1px solid #1f2937; border-radius: 0.75rem; }
+
+        /* Code editor */
+        .code-input {
+            background: #0d1117; border: 1px solid #1f2937; border-radius: 0.5rem;
+            color: #c9d1d9; font-size: 0.8125rem; resize: vertical;
+            padding: 1rem; width: 100%; min-height: 200px; outline: none;
+            tab-size: 4;
+        }
+        .code-input:focus { border-color: #0f6e2c; box-shadow: 0 0 0 2px rgba(15,110,44,0.2); }
+
+        /* Description input */
+        .desc-input {
+            background: #0d1117; border: 1px solid #1f2937; border-radius: 0.5rem;
+            color: #e2e8f0; font-size: 0.875rem; resize: vertical;
+            padding: 0.75rem 1rem; width: 100%; min-height: 80px; outline: none;
+        }
+        .desc-input:focus { border-color: #0f6e2c; box-shadow: 0 0 0 2px rgba(15,110,44,0.2); }
+
+        /* Buttons */
+        .btn-primary {
+            background: #0f6e2c; color: #fff; padding: 0.5rem 1.25rem;
+            border-radius: 0.5rem; font-weight: 600; font-size: 0.8125rem;
+            cursor: pointer; transition: all 0.15s; border: none;
+        }
+        .btn-primary:hover { background: #15803d; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-secondary {
+            background: #1f2937; color: #94a3b8; padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem; font-size: 0.75rem; cursor: pointer;
+            transition: all 0.15s; border: 1px solid #374151;
+        }
+        .btn-secondary:hover { background: #374151; color: #e2e8f0; }
+
+        /* Result */
+        .result-area { background: #0d1117; border-radius: 0.5rem; border: 1px solid #1f2937; }
+        .result-area pre { margin: 0; padding: 1rem; overflow-x: auto; }
+        .result-area code { font-size: 0.8125rem; }
+
+        /* Markdown rendered */
+        .markdown-body { color: #c9d1d9; font-size: 0.8125rem; line-height: 1.6; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #e6edf3; margin-top: 1.5em; margin-bottom: 0.5em; }
+        .markdown-body h1 { font-size: 1.25rem; border-bottom: 1px solid #21262d; padding-bottom: 0.3em; }
+        .markdown-body h2 { font-size: 1.1rem; }
+        .markdown-body h3 { font-size: 0.95rem; }
+        .markdown-body p { margin: 0.5em 0; }
+        .markdown-body ul, .markdown-body ol { padding-left: 1.5em; margin: 0.5em 0; }
+        .markdown-body li { margin: 0.25em 0; }
+        .markdown-body code { background: #161b22; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.8rem; }
+        .markdown-body pre { background: #161b22; border-radius: 6px; padding: 1rem; margin: 0.75em 0; overflow-x: auto; }
+        .markdown-body pre code { background: none; padding: 0; }
+        .markdown-body strong { color: #4ade80; }
+        .markdown-body table { border-collapse: collapse; margin: 0.75em 0; width: 100%; }
+        .markdown-body th, .markdown-body td { border: 1px solid #21262d; padding: 0.4em 0.8em; font-size: 0.8rem; }
+        .markdown-body th { background: #161b22; color: #e6edf3; }
+
+        /* Spinner */
+        .spinner { display: inline-block; width: 1.25rem; height: 1.25rem; border: 2px solid rgba(74,222,128,0.3); border-top-color: #4ade80; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Example chips */
+        .example-chip {
+            background: #1f2937; border: 1px solid #374151; border-radius: 0.5rem;
+            padding: 0.375rem 0.75rem; font-size: 0.75rem; color: #94a3b8;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .example-chip:hover { border-color: #4ade80; color: #4ade80; }
+
+        /* Glow effect */
+        .glow-green { text-shadow: 0 0 20px rgba(74,222,128,0.3); }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .split-layout { flex-direction: column !important; }
+            .split-layout > div { width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="border-b border-gray-800 px-4 md:px-6 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-green-900/50 flex items-center justify-center text-green-400 font-bold text-sm">CS</div>
+                <div>
+                    <h1 class="text-lg font-bold">
+                        <span class="text-green-400 glow-green">CashScript</span>
+                        <span class="text-white">Copilot</span>
+                    </h1>
+                    <p class="text-xs text-gray-500">AI-Powered Smart Contract Development for Bitcoin Cash</p>
+                </div>
+            </div>
+            <div class="flex gap-2 items-center">
+                <a href="https://cashscript.org/docs" target="_blank" class="btn-secondary hidden sm:inline-block">CashScript Docs</a>
+                <a href="https://github.com/CashScript/cashscript" target="_blank" class="btn-secondary hidden sm:inline-block">GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6">
+        <!-- Mode Tabs -->
+        <div class="flex gap-2 mb-6 flex-wrap">
+            <button class="mode-tab active" data-mode="generate" onclick="switchMode('generate')">Generate</button>
+            <button class="mode-tab" data-mode="audit" onclick="switchMode('audit')">Audit</button>
+            <button class="mode-tab" data-mode="explain" onclick="switchMode('explain')">Explain</button>
+            <button class="mode-tab" data-mode="optimize" onclick="switchMode('optimize')">Optimize</button>
+            <button class="mode-tab" data-mode="chat" onclick="switchMode('chat')">Chat</button>
+        </div>
+
+        <!-- Split Layout: Input / Output -->
+        <div class="flex gap-6 split-layout" style="min-height: 70vh;">
+            <!-- Left: Input Panel -->
+            <div style="width: 45%;" class="flex flex-col gap-4">
+                <!-- Generate mode -->
+                <div id="panel-generate" class="flex flex-col gap-4">
+                    <div>
+                        <label class="text-xs text-gray-400 uppercase mb-1 block">Describe your contract</label>
+                        <textarea id="gen-description" class="desc-input" placeholder="e.g. An escrow contract that holds BCH until the buyer confirms receipt or the seller can reclaim after 30 days timeout. Needs 2-of-3 multisig with a mediator."></textarea>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-xs text-gray-500 mr-1 self-center">Examples:</span>
+                        {% for name, ex in examples.items() %}
+                        <button class="example-chip" onclick="loadExample('{{ name }}')">{{ ex.name }}</button>
+                        {% endfor %}
+                    </div>
+                    <button class="btn-primary self-start" onclick="runGenerate()" id="btn-generate">
+                        Generate Contract
+                    </button>
+                </div>
+
+                <!-- Audit / Explain / Optimize mode -->
+                <div id="panel-code" class="flex flex-col gap-4 hidden">
+                    <div>
+                        <label class="text-xs text-gray-400 uppercase mb-1 block">Paste CashScript code</label>
+                        <textarea id="code-input" class="code-input" spellcheck="false" placeholder="pragma cashscript ^0.10.0;
+
+contract MyContract(pubkey owner) {
+    function spend(sig ownerSig) {
+        require(checkSig(ownerSig, owner));
+    }
+}"></textarea>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn-primary" onclick="runCodeAction()" id="btn-code-action">
+                            <span id="code-action-label">Audit Contract</span>
+                        </button>
+                        <button class="btn-secondary" onclick="loadExampleToEditor('escrow')">Load Example</button>
+                    </div>
+                </div>
+
+                <!-- Chat mode -->
+                <div id="panel-chat" class="flex flex-col gap-4 hidden">
+                    <div>
+                        <label class="text-xs text-gray-400 uppercase mb-1 block">Ask about CashScript</label>
+                        <textarea id="chat-input" class="desc-input" placeholder="e.g. How do I create a time-locked transfer in CashScript? What are CashTokens and how do I use them in contracts?"></textarea>
+                    </div>
+                    <button class="btn-primary self-start" onclick="runChat()" id="btn-chat">
+                        Send
+                    </button>
+                </div>
+
+                <!-- Code Output (extracted) -->
+                <div id="code-output-panel" class="hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs text-gray-400 uppercase">Generated Code</label>
+                        <div class="flex gap-2">
+                            <button class="btn-secondary" onclick="copyCode()">Copy</button>
+                            <button class="btn-secondary" onclick="downloadCode()">Download .cash</button>
+                        </div>
+                    </div>
+                    <div class="result-area">
+                        <pre><code id="code-output" class="language-javascript"></code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Output Panel -->
+            <div style="width: 55%;" class="flex flex-col">
+                <!-- Loading state -->
+                <div id="loading" class="hidden flex-1 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="spinner mb-3 mx-auto"></div>
+                        <div class="text-sm text-gray-400" id="loading-text">Generating contract...</div>
+                    </div>
+                </div>
+
+                <!-- Empty state -->
+                <div id="empty-state" class="flex-1 flex items-center justify-center">
+                    <div class="text-center max-w-md">
+                        <div class="text-4xl mb-4 opacity-20">&#x26A1;</div>
+                        <h2 class="text-lg font-semibold text-gray-300 mb-2">Ready to build</h2>
+                        <p class="text-sm text-gray-500 mb-4">
+                            Describe a smart contract, paste code to audit, or ask a question about CashScript development on Bitcoin Cash.
+                        </p>
+                        <div class="grid grid-cols-2 gap-3 text-xs text-gray-500">
+                            <div class="card p-3">
+                                <div class="text-green-400 font-semibold mb-1">Generate</div>
+                                Natural language to CashScript code
+                            </div>
+                            <div class="card p-3">
+                                <div class="text-green-400 font-semibold mb-1">Audit</div>
+                                Security analysis with severity ratings
+                            </div>
+                            <div class="card p-3">
+                                <div class="text-green-400 font-semibold mb-1">Explain</div>
+                                Plain language contract explanation
+                            </div>
+                            <div class="card p-3">
+                                <div class="text-green-400 font-semibold mb-1">Optimize</div>
+                                Improve security and efficiency
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result -->
+                <div id="result-panel" class="hidden flex-1 overflow-y-auto">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs text-gray-400 uppercase" id="result-label">Response</span>
+                        <button class="btn-secondary" onclick="copyResult()">Copy Response</button>
+                    </div>
+                    <div class="card p-5 markdown-body" id="result-content"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 px-6 py-4 mt-8">
+        <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-600">
+            <span>CashScript Copilot - BCH-1 Hackcelerator 2026</span>
+            <span>Powered by AI | Built for Bitcoin Cash developers</span>
+        </div>
+    </footer>
+
+    <script>
+    // ─── State ───
+    let currentMode = 'generate';
+    let lastResult = { response: '', code: '' };
+    let chatHistory = [];
+
+    // ─── Mode Switching ───
+    function switchMode(mode) {
+        currentMode = mode;
+        // Update tabs
+        document.querySelectorAll('.mode-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.mode === mode);
+        });
+        // Show/hide panels
+        document.getElementById('panel-generate').classList.toggle('hidden', mode !== 'generate');
+        document.getElementById('panel-code').classList.toggle('hidden', !['audit', 'explain', 'optimize'].includes(mode));
+        document.getElementById('panel-chat').classList.toggle('hidden', mode !== 'chat');
+        // Update code action button label
+        const labels = { audit: 'Audit Contract', explain: 'Explain Contract', optimize: 'Optimize Contract' };
+        document.getElementById('code-action-label').textContent = labels[mode] || 'Audit Contract';
+    }
+
+    // ─── API Calls ───
+    async function runGenerate() {
+        const desc = document.getElementById('gen-description').value.trim();
+        if (!desc) return;
+        await callAPI('/api/generate', { description: desc }, 'Generating contract...');
+    }
+
+    async function runCodeAction() {
+        const code = document.getElementById('code-input').value.trim();
+        if (!code) return;
+        const endpoints = { audit: '/api/audit', explain: '/api/explain', optimize: '/api/optimize' };
+        const labels = { audit: 'Auditing contract...', explain: 'Analyzing contract...', optimize: 'Optimizing contract...' };
+        await callAPI(endpoints[currentMode], { code }, labels[currentMode]);
+    }
+
+    async function runChat() {
+        const msg = document.getElementById('chat-input').value.trim();
+        if (!msg) return;
+        chatHistory.push({ role: 'user', content: msg });
+        await callAPI('/api/chat', { message: msg, history: chatHistory }, 'Thinking...');
+        if (lastResult.response) {
+            chatHistory.push({ role: 'assistant', content: lastResult.response });
+        }
+    }
+
+    async function callAPI(endpoint, payload, loadingText) {
+        // Show loading
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('result-panel').classList.add('hidden');
+        document.getElementById('loading-text').textContent = loadingText;
+
+        // Disable buttons
+        document.querySelectorAll('.btn-primary').forEach(b => b.disabled = true);
+
+        try {
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await resp.json();
+
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
+
+            lastResult = data;
+            showResult(data);
+        } catch (e) {
+            showError('Request failed: ' + e.message);
+        } finally {
+            document.getElementById('loading').classList.add('hidden');
+            document.querySelectorAll('.btn-primary').forEach(b => b.disabled = false);
+        }
+    }
+
+    // ─── Display ───
+    function showResult(data) {
+        const panel = document.getElementById('result-panel');
+        const content = document.getElementById('result-content');
+        const codePanel = document.getElementById('code-output-panel');
+        const codeOutput = document.getElementById('code-output');
+
+        // Render markdown
+        const html = marked.parse(data.response || 'No response');
+        content.innerHTML = html;
+
+        // Highlight code blocks in response
+        content.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
+
+        // Show code output panel if code was extracted
+        if (data.code) {
+            codeOutput.textContent = data.code;
+            hljs.highlightElement(codeOutput);
+            codePanel.classList.remove('hidden');
+        } else {
+            codePanel.classList.add('hidden');
+        }
+
+        // Update label
+        const labels = {
+            generate: 'Generated Contract',
+            audit: 'Audit Report',
+            explain: 'Contract Explanation',
+            optimize: 'Optimization Report',
+            chat: 'Response',
+        };
+        document.getElementById('result-label').textContent = labels[data.mode] || 'Response';
+
+        panel.classList.remove('hidden');
+        document.getElementById('empty-state').classList.add('hidden');
+    }
+
+    function showError(msg) {
+        document.getElementById('result-panel').classList.remove('hidden');
+        document.getElementById('result-content').innerHTML = `<div class="text-red-400"><strong>Error:</strong> ${msg}</div>`;
+        document.getElementById('code-output-panel').classList.add('hidden');
+    }
+
+    // ─── Examples ───
+    function loadExample(name) {
+        fetch('/api/example/' + name)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('gen-description').value =
+                    data.description + '\n\nSimilar to: ' + data.name;
+            });
+    }
+
+    function loadExampleToEditor(name) {
+        fetch('/api/example/' + name)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('code-input').value = data.code;
+            });
+    }
+
+    // ─── Copy/Download ───
+    function copyCode() {
+        if (lastResult.code) {
+            navigator.clipboard.writeText(lastResult.code);
+            showToast('Code copied!');
+        }
+    }
+
+    function copyResult() {
+        if (lastResult.response) {
+            navigator.clipboard.writeText(lastResult.response);
+            showToast('Response copied!');
+        }
+    }
+
+    function downloadCode() {
+        if (!lastResult.code) return;
+        const blob = new Blob([lastResult.code], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'contract.cash';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function showToast(msg) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-green-900 text-green-300 px-4 py-2 rounded-lg text-sm z-50';
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+
+    // ─── Keyboard shortcuts ───
+    document.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (currentMode === 'generate') runGenerate();
+            else if (currentMode === 'chat') runChat();
+            else runCodeAction();
+        }
+    });
+    </script>
+</body>
+</html>
