@@ -35,6 +35,14 @@ Submit a contract for improvement suggestions.
 
 ### Chat
 Free-form conversation about CashScript development, Bitcoin Cash, CashTokens, covenants, and more.
+- Conversation history persisted in browser (localStorage)
+- Context-aware follow-up questions
+
+### Extra Features
+- **Dark/Light theme toggle** - Switch between dark and light mode (preference saved)
+- **JSON Export** - Export audit and optimization reports as structured JSON
+- **Code download** - Download generated contracts as `.cash` files
+- **Keyboard shortcuts** - Ctrl+Enter to submit in any mode
 
 ## Quick Start
 
@@ -65,6 +73,28 @@ python app.py
 | `AI_MODEL` | auto | Override default model |
 | `SECRET_KEY` | dev key | Flask secret key |
 
+## Deployment
+
+### Railway (recommended)
+
+1. Push your repo to GitHub
+2. Go to [Railway.app](https://railway.app), create a new project from GitHub repo
+3. Add environment variables: `ANTHROPIC_API_KEY`, `AI_PROVIDER=anthropic`
+4. Railway auto-detects `railway.json` and deploys
+
+### Render
+
+1. Go to [Render.com](https://render.com), create a new Web Service from GitHub repo
+2. Render auto-detects `render.yaml` config
+3. Add your `ANTHROPIC_API_KEY` in the dashboard
+
+### Manual (VPS/local)
+
+```bash
+pip install -r requirements.txt
+python app.py --production --host 0.0.0.0 --port 8080
+```
+
 ## Architecture
 
 ```
@@ -78,6 +108,9 @@ cashscript-copilot/
 │   ├── escrow.cash
 │   ├── token_sale.cash
 │   └── token_vesting.cash
+├── Procfile                  # For Railway/Render/Heroku deployment
+├── railway.json              # Railway deployment config
+├── render.yaml               # Render deployment config
 ├── requirements.txt
 ├── .env.example
 └── README.md

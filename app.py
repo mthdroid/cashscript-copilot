@@ -170,18 +170,29 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S")
 
     parser = argparse.ArgumentParser(description="CashScript Copilot")
-    parser.add_argument("--port", type=int, default=5050, help="Port (default: 5050)")
-    parser.add_argument("--host", default="127.0.0.1", help="Host (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=None, help="Port (default: 5050)")
+    parser.add_argument("--host", default=None, help="Host (default: 127.0.0.1)")
+    parser.add_argument("--production", action="store_true", help="Run with waitress (production)")
     args = parser.parse_args()
+
+    # PORT env var takes priority (used by Railway/Render), then CLI arg, then default
+    port = int(os.getenv("PORT", 0)) or args.port or 5050
+    host = args.host or os.getenv("HOST", "127.0.0.1")
+    production = args.production or os.getenv("PRODUCTION", "").lower() in ("1", "true")
 
     provider = os.getenv("AI_PROVIDER", "anthropic")
     has_key = bool(os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENAI_API_KEY"))
 
     print()
     print("  CASHSCRIPT COPILOT")
-    print(f"  http://{args.host}:{args.port}")
+    print(f"  http://{host}:{port}")
     print(f"  AI Provider: {provider}")
     print(f"  API Key: {'configured' if has_key else 'MISSING - set ANTHROPIC_API_KEY or OPENAI_API_KEY'}")
     print()
 
-    app.run(host=args.host, port=args.port, debug=True)
+    if production:
+        from waitress import serve
+        print("  Running with Waitress (production)")
+        serve(app, host=host, port=port)
+    else:
+        app.run(host=host, port=port, debug=True)

@@ -97,6 +97,48 @@
         /* Glow effect */
         .glow-green { text-shadow: 0 0 20px rgba(74,222,128,0.3); }
 
+        /* Theme toggle */
+        .theme-toggle {
+            background: #1f2937; border: 1px solid #374151; border-radius: 0.5rem;
+            width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s; font-size: 1rem; color: #94a3b8;
+        }
+        .theme-toggle:hover { background: #374151; color: #e2e8f0; }
+
+        /* Light theme */
+        body.light { background: #f8fafc; color: #1e293b; }
+        body.light .mode-tab { color: #475569; }
+        body.light .mode-tab:hover { background: #e2e8f0; color: #1e293b; }
+        body.light .mode-tab.active { background: #16a34a; color: #ffffff; }
+        body.light .card { background: #ffffff; border-color: #e2e8f0; }
+        body.light .code-input { background: #ffffff; border-color: #d1d5db; color: #1e293b; }
+        body.light .code-input:focus { border-color: #16a34a; box-shadow: 0 0 0 2px rgba(22,163,74,0.15); }
+        body.light .desc-input { background: #ffffff; border-color: #d1d5db; color: #1e293b; }
+        body.light .desc-input:focus { border-color: #16a34a; box-shadow: 0 0 0 2px rgba(22,163,74,0.15); }
+        body.light .btn-primary { background: #16a34a; }
+        body.light .btn-primary:hover { background: #15803d; }
+        body.light .btn-secondary { background: #f1f5f9; color: #475569; border-color: #d1d5db; }
+        body.light .btn-secondary:hover { background: #e2e8f0; color: #1e293b; }
+        body.light .result-area { background: #ffffff; border-color: #e2e8f0; }
+        body.light .example-chip { background: #f1f5f9; border-color: #d1d5db; color: #475569; }
+        body.light .example-chip:hover { border-color: #16a34a; color: #16a34a; }
+        body.light .theme-toggle { background: #f1f5f9; border-color: #d1d5db; color: #475569; }
+        body.light .theme-toggle:hover { background: #e2e8f0; color: #1e293b; }
+        body.light .glow-green { text-shadow: none; }
+        body.light .spinner { border-color: rgba(22,163,74,0.3); border-top-color: #16a34a; }
+        body.light .markdown-body { color: #1e293b; }
+        body.light .markdown-body h1, body.light .markdown-body h2, body.light .markdown-body h3 { color: #0f172a; }
+        body.light .markdown-body h1 { border-bottom-color: #e2e8f0; }
+        body.light .markdown-body code { background: #f1f5f9; color: #1e293b; }
+        body.light .markdown-body pre { background: #f1f5f9; }
+        body.light .markdown-body strong { color: #16a34a; }
+        body.light .markdown-body th, body.light .markdown-body td { border-color: #e2e8f0; }
+        body.light .markdown-body th { background: #f1f5f9; color: #0f172a; }
+        body.light ::-webkit-scrollbar-track { background: #f8fafc; }
+        body.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+        /* Tailwind color overrides for light theme */
+        body.light header, body.light footer { border-color: #e2e8f0 !important; }
+
         /* Mobile */
         @media (max-width: 768px) {
             .split-layout { flex-direction: column !important; }
@@ -119,8 +161,9 @@
                 </div>
             </div>
             <div class="flex gap-2 items-center">
-                <a href="https://cashscript.org/docs" target="_blank" class="btn-secondary hidden sm:inline-block">CashScript Docs</a>
-                <a href="https://github.com/CashScript/cashscript" target="_blank" class="btn-secondary hidden sm:inline-block">GitHub</a>
+                <a href="https://cashscript.org/docs" target="_blank" class="btn-secondary hidden sm:inline-block">Docs</a>
+                <a href="https://github.com/mthdroid/cashscript-copilot" target="_blank" class="btn-secondary hidden sm:inline-block">GitHub</a>
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme" id="theme-btn">&#9790;</button>
             </div>
         </div>
     </header>
@@ -183,9 +226,10 @@ contract MyContract(pubkey owner) {
                         <label class="text-xs text-gray-400 uppercase mb-1 block">Ask about CashScript</label>
                         <textarea id="chat-input" class="desc-input" placeholder="e.g. How do I create a time-locked transfer in CashScript? What are CashTokens and how do I use them in contracts?"></textarea>
                     </div>
-                    <button class="btn-primary self-start" onclick="runChat()" id="btn-chat">
-                        Send
-                    </button>
+                    <div class="flex gap-2">
+                        <button class="btn-primary" onclick="runChat()" id="btn-chat">Send</button>
+                        <button class="btn-secondary" onclick="clearChatHistory()">Clear History</button>
+                    </div>
                 </div>
 
                 <!-- Code Output (extracted) -->
@@ -246,7 +290,10 @@ contract MyContract(pubkey owner) {
                 <div id="result-panel" class="hidden flex-1 overflow-y-auto">
                     <div class="flex justify-between items-center mb-3">
                         <span class="text-xs text-gray-400 uppercase" id="result-label">Response</span>
-                        <button class="btn-secondary" onclick="copyResult()">Copy Response</button>
+                        <div class="flex gap-2">
+                            <button class="btn-secondary" onclick="copyResult()">Copy</button>
+                            <button class="btn-secondary hidden" id="btn-export-json" onclick="exportJSON()">Export JSON</button>
+                        </div>
                     </div>
                     <div class="card p-5 markdown-body" id="result-content"></div>
                 </div>
@@ -266,7 +313,19 @@ contract MyContract(pubkey owner) {
     // ─── State ───
     let currentMode = 'generate';
     let lastResult = { response: '', code: '' };
-    let chatHistory = [];
+    let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+
+    // ─── Theme ───
+    function toggleTheme() {
+        const isLight = document.body.classList.toggle('light');
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        document.getElementById('theme-btn').innerHTML = isLight ? '&#9788;' : '&#9790;';
+    }
+    // Restore theme on load
+    if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light');
+        document.getElementById('theme-btn').innerHTML = '&#9788;';
+    }
 
     // ─── Mode Switching ───
     function switchMode(mode) {
@@ -307,6 +366,14 @@ contract MyContract(pubkey owner) {
         if (lastResult.response) {
             chatHistory.push({ role: 'assistant', content: lastResult.response });
         }
+        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        document.getElementById('chat-input').value = '';
+    }
+
+    function clearChatHistory() {
+        chatHistory = [];
+        localStorage.removeItem('chatHistory');
+        showToast('Chat history cleared');
     }
 
     async function callAPI(endpoint, payload, loadingText) {
@@ -377,6 +444,10 @@ contract MyContract(pubkey owner) {
         };
         document.getElementById('result-label').textContent = labels[data.mode] || 'Response';
 
+        // Show export JSON button for audit and optimize modes
+        const exportBtn = document.getElementById('btn-export-json');
+        exportBtn.classList.toggle('hidden', !['audit', 'optimize'].includes(data.mode));
+
         panel.classList.remove('hidden');
         document.getElementById('empty-state').classList.add('hidden');
     }
@@ -437,6 +508,26 @@ contract MyContract(pubkey owner) {
         toast.textContent = msg;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2000);
+    }
+
+    // ─── Export ───
+    function exportJSON() {
+        if (!lastResult.response) return;
+        const exportData = {
+            tool: 'CashScript Copilot',
+            mode: lastResult.mode,
+            timestamp: new Date().toISOString(),
+            response: lastResult.response,
+            code: lastResult.code || null,
+        };
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cashscript-${lastResult.mode}-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Exported as JSON');
     }
 
     // ─── Keyboard shortcuts ───
