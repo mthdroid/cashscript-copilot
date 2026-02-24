@@ -1,0 +1,13 @@
+{
+  "name": "cashscript-copilot-onchain-proof",
+  "version": "1.0.0",
+  "description": "On-chain proof for CashScript Copilot - BCH-1 Hackcelerator 2026",
+  "type": "module",
+  "scripts": {
+    "deploy": "node deploy.js"
+  },
+  "dependencies": {
+    "cashscript": "^0.10.0",
+    "cashc": "^0.10.0"
+  }
+}

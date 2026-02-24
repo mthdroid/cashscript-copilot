@@ -7,3 +7,6 @@ venv/
 dist/
 build/
 .cache/
+node_modules/
+onchain-proof/keys.json
+onchain-proof/node_modules/

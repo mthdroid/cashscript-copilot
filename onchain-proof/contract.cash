@@ -1,0 +1,12 @@
+pragma cashscript ^0.10.0;
+
+// CashScript Copilot - On-Chain Proof of Concept
+// Generated for BCH-1 Hackcelerator 2026
+// Demonstrates a signature-verified transfer with OP_RETURN message
+
+contract CopilotProof(pubkey owner) {
+    // Allow the owner to transfer funds with signature verification
+    function transfer(sig ownerSig) {
+        require(checkSig(ownerSig, owner));
+    }
+}
